@@ -2,7 +2,7 @@
   "name": "diodon-bot-helper",
   "version": "1.0.2",
   "main": "index.js",
-  "author": "e1 <cyace84@gmail.com>",
+  "author": "Madfish",
   "license": "MIT",
   "scripts": {
     "build": "./node_modules/.bin/tsc",
@@ -42,10 +42,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/madfish-solutions/diodon-faucet.git"
+    "url": "git+https://github.com/madfish-solutions/didon-liq-bot.git"
   },
   "bugs": {
-    "url": "https://github.com/madfish-solutions/diodon-faucet/issues"
+    "url": "https://github.com/madfish-solutions/didon-liq-bot/issues"
   },
-  "homepage": "https://github.com/madfish-solutions/diodon-faucet#readme"
+  "homepage": "https://github.com/madfish-solutions/didon-liq-bott#readme"
 }
