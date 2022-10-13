@@ -11,8 +11,7 @@ import { liquidate } from "./services/liquidate";
 import { marketMake } from "./services/marketMake";
 cron.schedule("* * * * *", async () => {
   console.log("Scheduled liquidations");
-  const txs = await liquidate();
-  console.log(txs.map(tx => tx.hash));
+  await liquidate();
 });
 
 cron.schedule("* * * * *", async () => {
@@ -44,9 +43,5 @@ app.route("/").get(async (req, res) => {
 
 // Start the Express server
 app.listen(SEVER_PORT, () => {
-  const s = async () => {
-    await marketMake();
-  };
-  s();
   console.log(`Server started at http://localhost:${SEVER_PORT}`);
 });

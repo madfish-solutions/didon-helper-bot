@@ -1,4 +1,4 @@
-import { ethers, Transaction } from "ethers";
+import { ethers } from 'ethers';
 
 import {
   CHAIN_ID,
@@ -6,64 +6,35 @@ import {
   CLEARING_HOUSE_ADDRESS,
   PRIVATE_KEY,
   RPC_URL,
-  SUBGRAPH_ENDPOINT,
   AAPL_AMM,
   SHOP_AMM,
   AMD_AMM,
-  CLEARING_HOUSE_VIEWER_ADDRESS,
   AMM_READER_ADDRESS,
-  PRICE_FEED_ADDRESS,
-} from "../config";
-import { facades } from "../helpers";
-import fetch from "node-fetch";
-import { sendAlert } from "../helpers";
-import { ClearingHouse, ERC20 } from "helpers/facades";
-import ammReaderABI from "../abis/ammReader.json";
-import BigNumber from "bignumber.js";
-import { Side } from "../helpers/types";
+  PRICE_FEED_ADDRESS
+} from '../config';
+import { facades } from '../helpers';
+import { sendAlert } from '../helpers';
+import ammReaderABI from '../abis/ammReader.json';
+import BigNumber from 'bignumber.js';
+import { Side } from '../helpers/types';
 
 const PRECISION = 1e18;
 export const marketMake = async () => {
   const provider = new ethers.providers.JsonRpcProvider(RPC_URL, {
     name: CHAIN_NAME,
-    chainId: CHAIN_ID,
+    chainId: CHAIN_ID
   });
   const wallet = new ethers.Wallet(PRIVATE_KEY, provider);
-  const contract = new facades.ClearingHouse(
-    provider,
-    CLEARING_HOUSE_ADDRESS,
-    wallet,
-  );
-  const priceFeed = new facades.ChainlinkPriceFeed(
-    provider,
-    PRICE_FEED_ADDRESS,
-    wallet,
-  );
-  const houseViewer = new facades.ClearingHouseViewer(
-    provider,
-    CLEARING_HOUSE_VIEWER_ADDRESS,
-    wallet,
-  );
-  const ammReader = new facades.CommonFacade(
-    provider,
-    AMM_READER_ADDRESS,
-    ammReaderABI,
-    wallet,
-  );
+  const contract = new facades.ClearingHouse(provider, CLEARING_HOUSE_ADDRESS, wallet);
+  const priceFeed = new facades.ChainlinkPriceFeed(provider, PRICE_FEED_ADDRESS, wallet);
+  const ammReader = new facades.CommonFacade(provider, AMM_READER_ADDRESS, ammReaderABI, wallet);
   try {
     const amms = [
-      [AAPL_AMM, "aapl"],
-      [AMD_AMM, "amd"],
-      [SHOP_AMM, "shop"],
+      [AAPL_AMM, 'aapl'],
+      [AMD_AMM, 'amd'],
+      [SHOP_AMM, 'shop']
     ];
 
-    // const unrealizedPNL =
-    //   (
-    //     await houseViewer.contract
-    //       .connect(wallet)
-    //       .getUnrealizedPnl(AAPL_AMM, 0)
-    //   ).toString() /
-    //   PRECISION;
     const amm = new facades.Amm(provider, SHOP_AMM, wallet);
     const quouteToken = await amm.contract.quoteAsset();
     const erc20 = new facades.ERC20(provider, quouteToken, wallet);
@@ -73,49 +44,29 @@ export const marketMake = async () => {
       const priceFeedKey = amms[i][1];
       const ammState = await ammReader.contract.getAmmStates(amm);
       const indexPrice = await priceFeed.getPrice(priceFeedKey);
-      const marketPrice = new BigNumber(
-        ammState.quoteAssetReserve.toString() /
-          ammState.baseAssetReserve.toString(),
-      );
-      // console.log("market price :", marketPrice.toNumber() / 10 ** 18);
-      // console.log(indexPrice.toNumber() / 10 ** 18);
-      console.log(priceFeedKey);
-      const newBaseReserve = Math.floor(
-        (ammState.quoteAssetReserve.toString() / indexPrice.toString()) *
-          PRECISION,
-      );
+      const marketPrice = new BigNumber(ammState.quoteAssetReserve.toString() / ammState.baseAssetReserve.toString());
+      const newBaseReserve = Math.floor((ammState.quoteAssetReserve.toString() / indexPrice.toString()) * PRECISION);
 
-      let diff = new BigNumber(
-        newBaseReserve - ammState.baseAssetReserve.toString(),
-      );
+      let diff = new BigNumber(newBaseReserve - ammState.baseAssetReserve.toString());
 
       let side = Side.BUY;
-      let sideName = "Buy";
+      let sideName = 'Buy';
       if (diff > new BigNumber(0)) {
         side = Side.SELL;
-        sideName = "Sell";
+        sideName = 'Sell';
       } else {
         diff = diff.abs();
       }
-      console.log("difff", diff.toFixed());
+      console.log('difff', diff.toFixed());
       console.log(sideName);
 
       try {
         await erc20.decreaseAllowance(contract.contract.address);
-        let amount = diff
-          .div(3)
-          .multipliedBy(marketPrice)
-          .integerValue(BigNumber.ROUND_DOWN);
-        await erc20.increaseAllowance(
-          contract.contract.address,
-          amount.plus(100 * PRECISION),
-        );
-        const prePosition = await contract.contract.getPosition(
-          amm,
-          wallet.address,
-        );
-        console.log("PreSize: ", prePosition.size.toString() / 10 ** 18);
-        console.log("Margin", prePosition.margin.toString() / 10 ** 18);
+        let amount = diff.div(3).multipliedBy(marketPrice).integerValue(BigNumber.ROUND_DOWN);
+        await erc20.increaseAllowance(contract.contract.address, amount.plus(100 * PRECISION));
+        const prePosition = await contract.contract.getPosition(amm, wallet.address);
+        console.log('PreSize: ', prePosition.size.toString() / 10 ** 18);
+        console.log('Margin', prePosition.margin.toString() / 10 ** 18);
 
         try {
           await contract.openPosition(
@@ -123,39 +74,33 @@ export const marketMake = async () => {
             side,
             amount.integerValue(BigNumber.ROUND_FLOOR),
             new BigNumber(2 * PRECISION),
-            new BigNumber(0 * PRECISION),
+            new BigNumber(0 * PRECISION)
           );
         } catch (err: any) {
-          if (err.message.includes("price is over fluctuation limit")) {
+          if (err.message.includes('price is over fluctuation limit')) {
             try {
               await contract.openPosition(
                 amm,
                 side,
                 new BigNumber(50000 * PRECISION),
                 new BigNumber(2 * PRECISION),
-                new BigNumber(0 * PRECISION),
+                new BigNumber(0 * PRECISION)
               );
             } catch (err: any) {
-              const startSelector = err.message.search("reason");
-              const endSelector = err.message.search("method");
-              const reason = err.message.slice(
-                startSelector + 7,
-                endSelector - 2,
-              );
+              const startSelector = err.message.search('reason');
+              const endSelector = err.message.search('method');
+              const reason = err.message.slice(startSelector + 7, endSelector - 2);
               await sendAlert(`🆘 OpenPosition\n${priceFeedKey}\n\n${reason}`);
             }
           }
         }
-        const postPosition = await contract.contract.getPosition(
-          amm,
-          wallet.address,
-        );
-        console.log("NewSize: ", postPosition.size.toString() / 10 ** 18);
-        console.log("NewMargin: ", postPosition.margin.toString() / 10 ** 18);
-        console.log("TradeAmount: ", amount.div(10 ** 18).toFixed());
+        const postPosition = await contract.contract.getPosition(amm, wallet.address);
+        console.log('NewSize: ', postPosition.size.toString() / 10 ** 18);
+        console.log('NewMargin: ', postPosition.margin.toString() / 10 ** 18);
+        console.log('TradeAmount: ', amount.div(10 ** 18).toFixed());
       } catch (err: any) {
-        const startSelector = err.message.search("reason");
-        const endSelector = err.message.search("method");
+        const startSelector = err.message.search('reason');
+        const endSelector = err.message.search('method');
         const reason = err.message.slice(startSelector + 7, endSelector - 2);
         await sendAlert(`🆘 OpenPosition\n${priceFeedKey}\n\n${reason}`);
       }
@@ -163,5 +108,5 @@ export const marketMake = async () => {
   } catch (err) {
     console.error(err);
   }
-  console.log("MM completed");
+  console.log('MM completed');
 };
