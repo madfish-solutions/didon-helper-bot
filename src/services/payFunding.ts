@@ -1,4 +1,4 @@
-import { ethers, Transaction } from "ethers";
+import { ethers } from "ethers";
 
 import {
   CHAIN_ID,
@@ -6,16 +6,15 @@ import {
   CLEARING_HOUSE_ADDRESS,
   PRIVATE_KEY,
   RPC_URL,
-  SUBGRAPH_ENDPOINT,
   AAPL_AMM,
   SHOP_AMM,
   AMD_AMM,
 } from "../config";
 import { facades } from "../helpers";
-import fetch from "node-fetch";
+
 import { sendAlert } from "../helpers";
 
-export const payFunding = async (): Promise<Array<Transaction>> => {
+export const payFunding = async () => {
   const provider = new ethers.providers.JsonRpcProvider(RPC_URL, {
     name: CHAIN_NAME,
     chainId: CHAIN_ID,
@@ -26,12 +25,7 @@ export const payFunding = async (): Promise<Array<Transaction>> => {
     CLEARING_HOUSE_ADDRESS,
     wallet,
   );
-  const liquidatablePositions: Array<string> = [];
-  const liquidatedTXs: Array<Transaction> = [];
-  const errors: Array<string> = [];
   try {
-    // const maintenanceMR = await contract.getMaintenanceMarginRatio();
-    // console.log('maintenanceMarginRatio: ', maintenanceMR.toString());
     const amms = [AAPL_AMM, AMD_AMM, SHOP_AMM];
     let errMSG = "🆘 <b>PayFunding ERROR:</b>\n\n";
     for (const i in amms) {
@@ -40,7 +34,6 @@ export const payFunding = async (): Promise<Array<Transaction>> => {
         await contract.payFunding(amm);
       } catch (err: any) {
         if (err.message.includes("settle funding too early")) {
-          console.log(111111);
           continue;
         }
         const startSelector = err.message.search("reason");
@@ -56,5 +49,4 @@ export const payFunding = async (): Promise<Array<Transaction>> => {
   } catch (err) {
     console.error(err);
   }
-  return liquidatedTXs;
 };
