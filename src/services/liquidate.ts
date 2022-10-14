@@ -105,7 +105,7 @@ export const liquidate = async () => {
         );
         const tx = await contract.liquidateWithSlippage(position.amm, position.trader, new BigNumber(0));
         console.log(`\nLiquidation successful: ${tx.hash}\n`);
-        liquidatedPositions[tx.hash!.toLowerCase()] = position;
+
         const liqPosition = (position.positionNotional / 10 ** 18).toFixed(2)
         await sendLiquidation(
           `❌ <b>Liquidated</b>\n\n${position.side} <b>${
