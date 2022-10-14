@@ -57,7 +57,6 @@ export const checkPosition = async (): Promise<any> => {
   );
   const traders = JSON.parse(JSON.stringify(require("../../traders.json")));
   const traderList = Object.keys(traders);
-
   try {
     for (const i in traderList) {
       const traderAddr = traderList[i];

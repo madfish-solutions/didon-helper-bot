@@ -20,7 +20,7 @@ export async function sendAlert(msg: string) {
 
 export async function sendLiquidation(msg: string) {
   try {
-    await bot.telegram.sendMessage("373283223", msg, {
+    await bot.telegram.sendMessage(process.env.LIQUIDATION_GROUP!, msg, {
       parse_mode: "HTML",
     });
   } catch (err) {
@@ -42,6 +42,7 @@ export async function sendForSubrscribers(trader: string, msg: string) {
       tempIds.push(tgId);
     } catch (err) {
       console.log(err);
+      continue;
     }
   }
 }

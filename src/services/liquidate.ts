@@ -103,28 +103,27 @@ export const liquidate = async () => {
             position.trader
           }\n`
         );
-
         const tx = await contract.liquidateWithSlippage(position.amm, position.trader, new BigNumber(0));
         console.log(`\nLiquidation successful: ${tx.hash}\n`);
         liquidatedPositions[tx.hash!.toLowerCase()] = position;
+        const liqPosition = (position.positionNotional / 10 ** 18).toFixed(2)
         await sendLiquidation(
           `❌ <b>Liquidated</b>\n\n${position.side} <b>${
             priceKeys[position.amm.toLowerCase()]
-          }</b>\n<b>Amount</b>: ${
-            position.positionNotional / 10 ** 18
-          } USD\n<b>Trader</b>: ${position.trader}\n\n\🧾 <code>${
-            tx.hash
-          }</code>`,
+          }</b>\n<b>Amount</b>: ${liqPosition} USD\n<b>Trader</b>: ${
+            position.trader
+          }\n\n\🧾 <code>${tx.hash}</code>`,
         );
         const msgForSubs = `❌ <b>Your position was Liquidated</b>\n\n${
           position.side
-        } ${priceKeys[position.amm.toLowerCase()]}\n<b>Amount</b>: ${
-          position.positionNotional / 10 ** 18
-        } USD\n<b>Address</b>: ${position.trader}\n\n\🧾 <code>${
-          tx.hash
-        }</code>`;
+        } ${
+          priceKeys[position.amm.toLowerCase()]
+        }\n<b>Amount</b>: ${liqPosition} USD\n<b>Address</b>: ${
+          position.trader
+        }\n\n\🧾 <code>${tx.hash}</code>`;
         await sendForSubrscribers(position.trader, msgForSubs);
       } catch (err: any) {
+
         const startSelector = err.message.search('reason');
         const endSelector = err.message.search('method');
         const reason = err.message.slice(startSelector + 7, endSelector - 2);
@@ -133,15 +132,14 @@ export const liquidate = async () => {
           ammNotf += 1;
         }
         if (
-          err.message.search('amm not found') != 1 ||
+          err.message.search('amm not found') != -1 ||
           err.message.search('positionSize is 0') != -1 ||
           err.message.search('Margin ratio not meet criteria') != -1
         ) {
           continue;
         } else {
-          if (position.id in cache) {
-            continue;
-          }
+
+          console.log(err);
 
           const startSelector = err.message.search('reason');
           const endSelector = err.message.search('method');
@@ -156,10 +154,14 @@ export const liquidate = async () => {
             errMessage += msg;
 
             if (errMessage.length >= 4000) {
-              await sendAlert(preErrMessage);
-              await sendAlert(msg);
+              try {
+                await sendAlert(preErrMessage);
+                await sendAlert(msg);
+                errMessage = "";
+              } catch (err) {
+                console.log(err)
+              }
 
-              errMessage = '';
             }
           }
 
