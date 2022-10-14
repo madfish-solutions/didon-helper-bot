@@ -96,5 +96,9 @@ app.route("/").get(async (req, res) => {
 
 // Start the Express server
 app.listen(SEVER_PORT, () => {
+  // const s = async () => {
+  //   await checkPosition();
+  // };
+  // s()
   console.log(`Server started at http://localhost:${SEVER_PORT}`);
 });

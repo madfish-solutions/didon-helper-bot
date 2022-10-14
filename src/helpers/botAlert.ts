@@ -20,7 +20,7 @@ export async function sendAlert(msg: string) {
 
 export async function sendLiquidation(msg: string) {
   try {
-    await bot.telegram.sendMessage(process.env.LIQUIDATION_GROUP!, msg, {
+    await bot.telegram.sendMessage("373283223", msg, {
       parse_mode: "HTML",
     });
   } catch (err) {

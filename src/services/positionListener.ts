@@ -98,10 +98,13 @@ export const checkPosition = async (): Promise<any> => {
           msg += `\n\n🆘 <b>!!CRITICAL RISK!!</b> 🆘\n\nYour margin level has fallen  below <b>6.6%</b>.\n\n<b>You will be liquidated</b> when your percentage drops below <b>6.25%</b>`;
         }
 
-        const lastUpdate: number = trader?.lastNotificationTime;
+        const lastUpdate: number = trader.lastNotificationTime;
 
         const timeDiff = Date.now() - lastUpdate;
+        const interval = intervals[marginRisk.toString()];
+        console.log("interval", timeDiff >= interval);
         if (timeDiff >= intervals[marginRisk.toString()]) {
+          console.log(Date.now(), Date.now());
           trader.lastNotificationTime = Date.now();
           trader.lastMarginRatio = formatedMarginRatio.toString();
           await sendForSubrscribers(traderAddr, msg);

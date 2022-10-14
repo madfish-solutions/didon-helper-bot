@@ -72,7 +72,7 @@ const getFilteredPositions = async (clearingHouse: ClearingHouse): Promise<any> 
         amm: amm,
         side: getSide(position.size.toString()),
         size: position.size.toString(),
-        positionNotional: position.openNotional.toString()
+        positionNotional: position.openNotional.toString(),
       });
     }
   }
@@ -108,14 +108,18 @@ export const liquidate = async () => {
         console.log(`\nLiquidation successful: ${tx.hash}\n`);
         liquidatedPositions[tx.hash!.toLowerCase()] = position;
         await sendLiquidation(
-          `❌ <b>Liquidated</b>\n\n${position.side} ${priceKeys[position.amm.toLowerCase()]}<b>Amount</b>: ${
-            position.openNotional / 10 ** 18
-          } USD\n<b>Trader</b>: ${position.trader}\n\n\🧾 <code>${tx.hash}</code>`
+          `❌ <b>Liquidated</b>\n\n${position.side} <b>${
+            priceKeys[position.amm.toLowerCase()]
+          }</b>\n<b>Amount</b>: ${
+            position.positionNotional / 10 ** 18
+          } USD\n<b>Trader</b>: ${position.trader}\n\n\🧾 <code>${
+            tx.hash
+          }</code>`,
         );
         const msgForSubs = `❌ <b>Your position was Liquidated</b>\n\n${
           position.side
-        } ${priceKeys[position.amm.toLowerCase()]}<b>Amount</b>: ${
-          position.openNotional / 10 ** 18
+        } ${priceKeys[position.amm.toLowerCase()]}\n<b>Amount</b>: ${
+          position.positionNotional / 10 ** 18
         } USD\n<b>Address</b>: ${position.trader}\n\n\🧾 <code>${
           tx.hash
         }</code>`;
