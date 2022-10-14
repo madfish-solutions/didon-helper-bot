@@ -1,7 +1,7 @@
 import { ethers, Transaction } from 'ethers';
 
 import { CHAIN_ID, CHAIN_NAME, CLEARING_HOUSE_ADDRESS, PRIVATE_KEY, RPC_URL, SUBGRAPH_ENDPOINT } from '../config';
-import { facades, sendLiquidation } from '../helpers';
+import { ammList, facades, getSide, priceKeys, sendForSubrscribers, sendLiquidation} from '../helpers';
 import fetch from 'node-fetch';
 import { sendAlert } from '../helpers';
 
@@ -42,18 +42,8 @@ export const querySubgraph = async (query: string): Promise<any> => {
 
   return data;
 };
-const ammList = [
-  '0x080486eedaf43c5bd8495fa5aeaca21ed23a58bf',
-  '0x7d1ecca059f4c06669c66e4e5708f07fcb5d555d',
-  '0x1b3e5d5bc9223e39581062f929dab6d1dc12c7ea'
-];
-const getSide = (size: number) => {
-  if (size > 0) return '💹 LONG';
-  else return '🔻 SHORT';
-};
-const getFilteredPositions = async (clearingHouse: ClearingHouse): Promise<any> => {
-  let positions: any = {};
 
+const getFilteredPositions = async (clearingHouse: ClearingHouse): Promise<any> => {
   const rawPositions = await querySubgraph(GET_ALL_POSITIONS());
   console.log(rawPositions.data.positions.length);
   const traders: address[] = [];
@@ -76,7 +66,7 @@ const getFilteredPositions = async (clearingHouse: ClearingHouse): Promise<any> 
     for (const i in ammList) {
       const amm = ammList[i];
       const position = await clearingHouse.contract.getPosition(amm, trader);
-      if (position.size.toString() === 0) continue;
+      if (position.size.toString() == 0) continue;
       returnPositions.push({
         trader: trader,
         amm: amm,
@@ -89,11 +79,6 @@ const getFilteredPositions = async (clearingHouse: ClearingHouse): Promise<any> 
 
   console.log('UpdatedPositions :', returnPositions.length);
   return returnPositions;
-};
-const priceKeys: any = {
-  '0x080486eedaf43c5bd8495fa5aeaca21ed23a58bf': 'AAPL',
-  '0x7d1ecca059f4c06669c66e4e5708f07fcb5d555d': 'AMD',
-  '0x1b3e5d5bc9223e39581062f929dab6d1dc12c7ea': 'SHOP'
 };
 
 export const liquidate = async () => {
@@ -122,11 +107,19 @@ export const liquidate = async () => {
         const tx = await contract.liquidateWithSlippage(position.amm, position.trader, new BigNumber(0));
         console.log(`\nLiquidation successful: ${tx.hash}\n`);
         liquidatedPositions[tx.hash!.toLowerCase()] = position;
-        sendLiquidation(
+        await sendLiquidation(
           `❌ <b>Liquidated</b>\n\n${position.side} ${priceKeys[position.amm.toLowerCase()]}<b>Amount</b>: ${
             position.openNotional / 10 ** 18
           } USD\n<b>Trader</b>: ${position.trader}\n\n\🧾 <code>${tx.hash}</code>`
         );
+        const msgForSubs = `❌ <b>Your position was Liquidated</b>\n\n${
+          position.side
+        } ${priceKeys[position.amm.toLowerCase()]}<b>Amount</b>: ${
+          position.openNotional / 10 ** 18
+        } USD\n<b>Address</b>: ${position.trader}\n\n\🧾 <code>${
+          tx.hash
+        }</code>`;
+        await sendForSubrscribers(position.trader, msgForSubs);
       } catch (err: any) {
         const startSelector = err.message.search('reason');
         const endSelector = err.message.search('method');

@@ -24,3 +24,5 @@ export const CLEARING_HOUSE_ADDRESS = defined(process.env.CLEARING_HOUSE_ADDRESS
 export const CLEARING_HOUSE_VIEWER_ADDRESS = defined(process.env.CLEARING_HOUSE_VIEWER_ADDRESS);
 export const AMM_READER_ADDRESS = defined(process.env.AMM_READER_ADDRESS);
 export const PRICE_FEED_ADDRESS = defined(process.env.PRICE_FEED_ADDRESS);
+
+export const BOT_TOKEN = defined(process.env.BOT_TOKEN);
