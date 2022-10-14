@@ -38,6 +38,11 @@ const intervals: any = {
   "3": 3600 * 1000,
   "4": 1800 * 1000,
 };
+
+export type userInfo = {
+  lastMarginRatio: string;
+  lastNotificationTime: number;
+};
 export const checkPosition = async (): Promise<any> => {
   const provider = new ethers.providers.JsonRpcProvider(RPC_URL, {
     name: CHAIN_NAME,
@@ -52,21 +57,21 @@ export const checkPosition = async (): Promise<any> => {
   );
   const traders = JSON.parse(JSON.stringify(require("../../traders.json")));
   const traderList = Object.keys(traders);
+
   try {
     for (const i in traderList) {
       const traderAddr = traderList[i];
 
-      for (const i in ammList) {
-        const amm = ammList[i];
-        const trader = traders[traderAddr][amm];
-
+      for (const x in ammList) {
+        const amm = ammList[x];
+        const trader: userInfo = traders[traderAddr.toLocaleLowerCase()][amm];
         const position = await clearingHouse.contract.getPosition(
           amm,
           traderAddr,
         );
 
         if (position.size.toString() == 0) continue;
-        console.log(amm, trader);
+
         const marginRatio = (
           await clearingHouse.getMarginRatio(amm, traderAddr)
         ).toNumber();
@@ -93,11 +98,13 @@ export const checkPosition = async (): Promise<any> => {
           msg += `\n\n🆘 <b>!!CRITICAL RISK!!</b> 🆘\n\nYour margin level has fallen  below <b>6.6%</b>.\n\n<b>You will be liquidated</b> when your percentage drops below <b>6.25%</b>`;
         }
 
-        const timeDiff = Date.now() - trader.lastNotificationTime;
+        const lastUpdate: number = trader?.lastNotificationTime;
+
+        const timeDiff = Date.now() - lastUpdate;
         if (timeDiff >= intervals[marginRisk.toString()]) {
-          await sendForSubrscribers(traderAddr, msg);
           trader.lastNotificationTime = Date.now();
-          trader.marginRatio = formatedMarginRatio.toString();
+          trader.lastMarginRatio = formatedMarginRatio.toString();
+          await sendForSubrscribers(traderAddr, msg);
         }
       }
     }
